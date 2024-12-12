@@ -11,7 +11,7 @@ from config import *
 
 # WS2812 config
 LED_COUNT = 8
-LED_PIN = ws2812pin
+LED_PIN = board.D18
 LED_BRIGHTNESS = 1.0 / 32
 pixels = neopixel.NeoPixel(LED_PIN, LED_COUNT, brightness=LED_BRIGHTNESS, auto_write=False)
 
@@ -81,6 +81,14 @@ def read_encoder():
             else:
                 current_mode = (current_mode - 1) % 3  # Previous mode
 
+def encoder_callback(channel):
+    global current_mode
+    state_right = GPIO.input(encoderRight)
+    if state_right == GPIO.HIGH:
+        current_mode = (current_mode + 1) % 3  # Next mode
+    else:
+        current_mode = (current_mode - 1) % 3
+
 # main
 if __name__ == "__main__":
     try:
@@ -88,7 +96,8 @@ if __name__ == "__main__":
 
         # rejestracja eventów dla przycisków i enkodera
         # GPIO.add_event_detect(buttonRed, GPIO.FALLING, callback=button_pressed_callback, bouncetime=200)
-        GPIO.add_event_detect(buttonGreen, GPIO.FALLING, callback=button_pressed_callback, bouncetime=200)     
+        # GPIO.add_event_detect(buttonGreen, GPIO.FALLING, callback=button_pressed_callback, bouncetime=200)     
+        GPIO.add_event_detect(encoderLeft, GPIO.FALLING, callback=encoder_callback, bouncetime=200)
         
         current_mode = 0  # (0 - temp, 1 - humid, 2 - press)
 
@@ -96,7 +105,7 @@ if __name__ == "__main__":
             if GPIO.input(buttonRed) == GPIO.LOW:
                 print("program exit")
                 break
-            read_encoder()  # read encoder
+            #read_encoder()  # read encoder
 
             if current_mode == 0: # temperature
                 temp = ds18b20()
@@ -106,7 +115,9 @@ if __name__ == "__main__":
             elif current_mode == 1: # humidity
                 bme = bme280()
                 humidity = bme.humidity
-                print(f"humidity: {humidity} %")
+                #print(f"humidity: {humidity}.2f %")
+                # round to 2 decimal places
+                print(f"humidity: {humidity:.2f} %")
                 visualize_humidity(humidity)
 
             elif current_mode == 2: # pressure
