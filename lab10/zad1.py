@@ -26,7 +26,7 @@ def bme280_read(bme):
     }
 
 def display_on_oled(disp, parameters, index):
-    disp.clear()
+    #disp.clear()
     image = Image.new("RGB", (disp.width, disp.height), "BLACK")
     draw = ImageDraw.Draw(image)
     

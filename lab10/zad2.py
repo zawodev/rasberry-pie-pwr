@@ -1,5 +1,6 @@
+import datetime
+
 import time
-import RPi.GPIO as GPIO
 from config import *
 from mfrc522 import MFRC522
 import board
@@ -23,52 +24,35 @@ def reset_leds():
 
 def beep():
     buzzer(True)
-    time.sleep(1)
+    time.sleep(.1)
     buzzer(False)
 
-def main():
-    reader = MFRC522()
-    last_uid = None
-    card_present = False
+reader = MFRC522()
 
-    print("Czekam na przyłożenie karty RFID...")
-
-    try:
-        while True:
-            (status, TagType) = reader.MFRC522_Request(reader.PICC_REQIDL)
+try:
+    print("czekam na przyłożenie karty...")
+    while True:
+        status, TagType = reader.MFRC522_Request(reader.PICC_REQIDL)
+        if status == reader.MI_OK:
+            status, uid = reader.MFRC522_Anticoll()
             if status == reader.MI_OK:
-                (status, uid) = reader.MFRC522_Anticoll()
-                if status == reader.MI_OK:
-                    uid_num = 0
-                    for i in range(len(uid)):
-                        uid_num += uid[i] << (i*8)
+                uid_num = 0
+                for i in range(len(uid)):
+                    uid_num += uid[i] << (i*8)
 
-                    # Check if the card is the same as the last one
-                    if not card_present or uid_num != last_uid:
-                        now = time.strftime("%Y-%m-%d %H:%M:%S")
-                        print(f"Karta wykryta: UID={uid} ({uid_num}), czas: {now}")
+                now = time.strftime("%Y-%m-%d %H:%M:%S")
+                print(f"Karta wykryta: UID={uid} ({uid_num}), czas: {now}")
+                
+                beep()
+                
+                set_color(0, 255, 0)
+                time.sleep(1)
+                reset_leds()
+                
+                while status == reader.MI_OK:
+                    status, _ = reader.MFRC522_Anticoll()
 
-                        beep()
-
-                        set_color(0, 255, 0)
-                        time.sleep(1)
-                        reset_leds()
-
-                        last_uid = uid_num
-                        card_present = True
-                else:
-                    print("Błąd odczytu UID")
-            else:
-                # If the card is not present, reset the last_uid
-                if card_present:
-                    card_present = False
-                time.sleep(0.1)
-
-    except KeyboardInterrupt:
-        print("Zatrzymano program.")
-    finally:
-        reset_leds()
-        GPIO.cleanup()
-
-if __name__ == "__main__":
-    main()
+except KeyboardInterrupt:
+    print("program przerwany")
+finally:
+    GPIO.cleanup()
