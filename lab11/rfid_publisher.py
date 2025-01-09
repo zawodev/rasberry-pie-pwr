@@ -6,31 +6,42 @@ MQTT_TOPIC = "rfid/events"
 
 from rfid_reader import RfidReader
 
-def main():
-    rfid = RfidReader()
+class Publisher:
+    def __init__(self):
+        self.rfid = RfidReader(self)
+        self.client = mqtt.Client()
+        print(f"Łączenie z brokerem MQTT: {BROKER_ADDRESS}")
+        self.client.connect(BROKER_ADDRESS)
+        print("Połączono z brokerem MQTT.")
+    
+    def run(self):
+        try:
+            while True:
+                uid_num, uid_list, now_str = self.rfid.detect_card_once()
 
-    client = mqtt.Client()
-    print(f"Łączenie z brokerem MQTT: {BROKER_ADDRESS}")
-    client.connect(BROKER_ADDRESS)
-    print("Połączono z brokerem MQTT.")
+                msg_str = f"KARTA: {uid_num}, UID_LIST: {uid_list}, TIME: {now_str}"
+                print(f"[PUB] Publikuję: {msg_str}")
 
-    try:
-        while True:
-            uid_num, uid_list, now_str = rfid.detect_card_once()
+                self.client.publish(MQTT_TOPIC, msg_str)
 
-            msg_str = f"KARTA: {uid_num}, UID_LIST: {uid_list}, TIME: {now_str}"
-            print(f"[PUB] Publikuję: {msg_str}")
+                time.sleep(0.2)
 
-            client.publish(MQTT_TOPIC, msg_str)
+        except KeyboardInterrupt:
+            print("Zatrzymano publikowanie (Ctrl+C).")
 
-            time.sleep(0.2)
+        finally:
+            print("Rozłączanie z brokerem MQTT...")
+            self.client.disconnect()
+            
+    def publish(self, uid_num, uid_list, now_str):
+        msg_str = f"KARTA: {uid_num}, UID_LIST: {uid_list}, TIME: {now_str}"
+        print(f"[PUB] Publikuję: {msg_str}")
 
-    except KeyboardInterrupt:
-        print("Zatrzymano publikowanie (Ctrl+C).")
+        self.client.publish(MQTT_TOPIC, msg_str)
 
-    finally:
-        print("Rozłączanie z brokerem MQTT...")
-        client.disconnect()
-
+        time.sleep(0.2)
+        
 if __name__ == "__main__":
-    main()
+    publisher = Publisher()
+    publisher.run()
+    

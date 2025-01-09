@@ -7,50 +7,50 @@ import neopixel
 
 import config
 
+reader = MFRC522()
+
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
+
+LED_COUNT = 8
+LED_PIN = board.D18
+LED_BRIGHTNESS = 1.0 / 32
+pixels = neopixel.NeoPixel(LED_PIN, LED_COUNT, brightness=LED_BRIGHTNESS, auto_write=False)
+
+def set_color(r, g, b):
+    pixels.fill((r, g, b))
+    pixels.show()
+
+def beep():
+    GPIO.output(config.buzzerPin, False)
+    time.sleep(0.1)
+    GPIO.output(config.buzzerPin, True)
+
 class RfidReader:
-    def __init__(self):
-        self.reader = MFRC522()
-
-        GPIO.output(config.buzzerPin, 0)
-
-        self.pixels = neopixel.NeoPixel(
-            pin=board.D8,
-            n=8,
-            brightness=0.2,
-            auto_write=False
-        )
-
-    def beep(self, duration=0.1):
-        GPIO.output(config.buzzerPin, 1)
-        time.sleep(duration)
-        GPIO.output(config.buzzerPin, 0)
-
-    def set_color(self, r, g, b):
-        self.pixels.fill((r, g, b))
-        self.pixels.show()
-
-    def reset_leds(self):
-        self.set_color(0, 0, 0)
+    def __init__(self, publisher):
+        self.publisher = publisher
 
     def detect_card_once(self):
         print("Czekam na przyłożenie karty...")
         while True:
-            status, TagType = self.reader.MFRC522_Request(self.reader.PICC_REQIDL)
-            if status == self.reader.MI_OK:
-                status, uid = self.reader.MFRC522_Anticoll()
-                if status == self.reader.MI_OK:
+            status, TagType = reader.MFRC522_Request(reader.PICC_REQIDL)
+            if status == reader.MI_OK:
+                status, uid = reader.MFRC522_Anticoll()
+                if status == reader.MI_OK:
                     uid_num = 0
                     for i in range(len(uid)):
-                        uid_num += uid[i] << (i * 8)
-
+                        uid_num += uid[i] << (i*8)
+    
                     now_str = time.strftime("%Y-%m-%d %H:%M:%S")
-
-                    self.beep()
-                    self.set_color(0, 255, 0)
+                    print(f"Karta wykryta: UID={uid} ({uid_num}), czas: {now_str}")
+    
+                    beep()
+    
+                    set_color(0, 255, 0)
                     time.sleep(1)
-                    self.reset_leds()
-
-                    while status == self.reader.MI_OK:
-                        status, _ = self.reader.MFRC522_Anticoll()
-
-                    return uid_num, uid, now_str
+                    set_color(0, 0, 0)
+                    
+                    self.publisher.publish(uid_num, uid, now_str)
+    
+                    while status == reader.MI_OK:
+                        status, _ = reader.MFRC522_Anticoll()

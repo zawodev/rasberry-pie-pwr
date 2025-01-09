@@ -34,10 +34,10 @@ def display_on_oled(disp, parameters, index):
     fontSmall = ImageFont.truetype("./lib/oled/Font.ttf", 12)
 
     icons = {
-        "temperature": Image.open("./lib/oled/pic.jpg").resize((20, 20)),
-        "humidity": Image.open("./lib/oled/pic.jpg").resize((20, 20)),
-        "pressure": Image.open("./lib/oled/pic.jpg").resize((20, 20)),
-        "altitude": Image.open("./lib/oled/pic.jpg").resize((20, 20))
+        "temperature": Image.open("./lib/oled/abc.jpg").resize((20, 20)),
+        "humidity": Image.open("./lib/oled/abc.jpg").resize((20, 20)),
+        "pressure": Image.open("./lib/oled/abc.jpg").resize((20, 20)),
+        "altitude": Image.open("./lib/oled/abc.jpg").resize((20, 20))
     }
 
     keys = list(parameters.keys())

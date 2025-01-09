@@ -19,9 +19,9 @@ def update_brightness(delta):
 def encoder_callback(channel):
     state_right = GPIO.input(encoderRight)
     if state_right == GPIO.HIGH:
-        update_brightness(+10)
-    else:
         update_brightness(-10)
+    else:
+        update_brightness(+10)
 
 def main():
     global diode1
