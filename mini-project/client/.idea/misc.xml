@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="Remote Python 3.9.2 (sftp://pi@169.254.64.148:22/usr/bin/python3)" />
+    <option name="sdkName" value="Python 3.12" />
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (client)" project-jdk-type="Python SDK" />
 </project>
