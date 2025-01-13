@@ -44,7 +44,7 @@ def create_tables(conn):
             user_id TEXT NOT NULL,
             date_time TEXT NOT NULL,
             status TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES Users(id)
+            FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
         );
         """
         cursor.execute(create_login_records_table)
@@ -155,7 +155,7 @@ def delete_user(conn, user_id: str):
         query = "DELETE FROM Users WHERE id = ?"
         cursor.execute(query, (user_id,))
         conn.commit()
-        print(f"Usunięto użytkownika ID = {user_id}.")
+        print(f"Usunięto użytkownika ID = {user_id} (z rekordami w LoginRecords).")
     except sqlite3.Error as e:
         print("Błąd podczas usuwania użytkownika:", e)
 
