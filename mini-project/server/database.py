@@ -2,10 +2,6 @@ import sqlite3
 from datetime import datetime
 import json  # do serializacji safe_combination
 
-# =================================
-# Funkcje pomocnicze
-# =================================
-
 def create_connection(db_file: str):
     """
     Tworzy i zwraca połączenie do bazy danych SQLite.
@@ -31,18 +27,17 @@ def create_tables(conn):
     try:
         cursor = conn.cursor()
 
-        
         create_users_table = """
         CREATE TABLE IF NOT EXISTS Users (
             id TEXT PRIMARY KEY,
             login TEXT NOT NULL,
             password TEXT NOT NULL,
+            -- Tutaj przechowujemy JSON z 8 liczbami z zakresu 0..255
             safe_combination TEXT
         );
         """
         cursor.execute(create_users_table)
 
-        
         create_login_records_table = """
         CREATE TABLE IF NOT EXISTS LoginRecords (
             login_record_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,7 +49,6 @@ def create_tables(conn):
         """
         cursor.execute(create_login_records_table)
 
-        
         create_requests_table = """
         CREATE TABLE IF NOT EXISTS Requests (
             request_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,13 +72,12 @@ def add_user(conn, user_id: str, login: str, password: str, safe_combination: li
     """
     Dodaje nowego użytkownika do tabeli Users.
     user_id: tekstowe ID użytkownika (np. numer karty, unikalny login)
-    safe_combination: lista ośmiu 3-elementowych krotek (RGB), np. [(255,0,0), (128,128,128), ...].
+    safe_combination: lista 8 liczb (każda 0..255).
     """
     try:
         cursor = conn.cursor()
 
-        # Serializujemy safe_combination do JSON,
-        # np. [(255, 0, 0), (0, 255, 0), ...] -> "[[255, 0, 0], [0, 255, 0], ...]"
+        # Serializacja listy 8 liczb do JSON, np. [12, 255, 0, 128, ...] -> "[12, 255, 0, 128, ...]"
         safe_combination_json = json.dumps(safe_combination)
 
         query = """
@@ -120,10 +113,11 @@ def get_user_by_id(conn, user_id: str):
     except sqlite3.Error as e:
         print("Błąd podczas pobierania użytkownika:", e)
         return None
-    
+
 def get_all_users(conn):
     """
     Zwraca listę krotek (id, login, password, safe_combination) wszystkich użytkowników.
+    Ponieważ safe_combination mamy jako TEXT (JSON), zwracamy to, co jest w bazie (jeszcze niesparsowane).
     """
     try:
         cursor = conn.cursor()
@@ -178,7 +172,7 @@ def add_login_record(conn, user_id: str, status: str):
     """
     try:
         cursor = conn.cursor()
-        now = datetime.now().isoformat(timespec='seconds')  # np. '2025-01-12T13:01:00'
+        now = datetime.now().isoformat(timespec='seconds')
         query = """
         INSERT INTO LoginRecords (user_id, date_time, status)
         VALUES (?, ?, ?)
@@ -241,7 +235,7 @@ def get_all_requests(conn):
     except sqlite3.Error as e:
         print("Błąd podczas pobierania danych z Requests:", e)
         return []
-    
+
 def delete_request(conn, request_id: int):
     """
     Usuwa rekord z tabeli Requests po request_id.
@@ -253,6 +247,7 @@ def delete_request(conn, request_id: int):
         conn.commit()
     except sqlite3.Error as e:
         print(e)
+
 
 # =================================
 # Główny blok wykonywalny (przykład użycia)
