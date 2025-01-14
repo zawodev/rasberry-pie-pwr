@@ -12,8 +12,14 @@ reader = MFRC522()
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
+def default_callback(uid_num, uid_list, now_str):
+    print(f"Karta wykryta: UID={uid_list} ({uid_num}), czas: {now_str}")
+
 class RfidReader:
-    def __init__(self, callback):
+    def __init__(self):
+        self.callback = default_callback
+
+    def set_callback(self, callback):
         self.callback = callback
 
     def detect_card_once(self):

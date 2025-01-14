@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
 from PIL import Image
+from modules.oled_display import display_image
 
 class Captcha:
-    def __init__(self, display, image_path="lib/oled/cat.png", missing_piece_size=(20, 20), canvas_size=(96, 64)):
+    def __init__(self, image_path="modules/lib/oled/cat.png", missing_piece_size=(20, 20), canvas_size=(96, 64)):
         self.image_path = image_path
         self.missing_piece_size = missing_piece_size
         self.canvas_size = canvas_size
@@ -11,9 +12,7 @@ class Captcha:
         self.offset = [0, 0]
         self.original_position = None
         self.base_image, self.missing_piece, self.masked_image = self._prepare_images()
-        self.display = display
-        self.display.clear()
-        self.update_display()
+        # self.update_display()
 
     def _prepare_images(self):
         image = cv2.imread(self.image_path)
@@ -51,8 +50,6 @@ class Captcha:
         original_x, original_y = self.original_position
 
         if abs(original_x - self.offset[0] - 2) <= tolerance and abs(original_y - self.offset[1] - 2) <= tolerance:
-            self.display.clear()
-            self.display.reset()
             print("Captcha solved correctly!")
             return True
         else:
@@ -81,7 +78,7 @@ class Captcha:
         combined_image = self.get_combined_image()
         rgb_image = cv2.cvtColor(combined_image, cv2.COLOR_BGR2RGB)
         pil_image = Image.fromarray(rgb_image)
-        self.display.ShowImage(pil_image, 0, 0)
+        display_image(pil_image)
 
 if __name__ == "__main__":
     captcha = Captcha("modules/lib/oled/cat.png")

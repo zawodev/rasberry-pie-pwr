@@ -2,8 +2,9 @@ import time
 import paho.mqtt.client as mqtt
 
 BROKER_ADDRESS = "localhost"
-MQTT_POST_TOPIC = "rfid/events"
-MQTT_GET_TOPIC = "rfid/response"
+RFID_POST_TOPIC = "client/rfid"
+ENCODER_LOCK_POST_TOPIC = "client/encoder_lock"
+RESPONSE_GET_TOPIC = "server/response"
 
 def default_callback(msg):
     print("default_callback: ", msg)
@@ -20,16 +21,16 @@ class MqttClient:
         self.client.on_message = self.on_message
         self.client.loop_start()
 
-    def publish(self, msg_str):
-        self.client.publish(MQTT_POST_TOPIC, msg_str)
+    def publish(self, topic, msg_str):
+        self.client.publish(topic, msg_str)
         
     def set_callback(self, callback):
         self.callback = callback
         
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            print("Połączono z brokerem MQTT. Subskrypcja tematu:", MQTT_GET_TOPIC)
-            client.subscribe(MQTT_GET_TOPIC)
+            print("Połączono z brokerem MQTT. Subskrypcja tematu:", RESPONSE_GET_TOPIC)
+            client.subscribe(RESPONSE_GET_TOPIC)
         else:
             print("Błąd połączenia. Kod=", rc)
             
