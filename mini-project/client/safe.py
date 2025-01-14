@@ -3,15 +3,14 @@ import threading
 import neopixel
 import board
 
-from lab09.zad1 import brightness
-from modules.buttons import assign_red_button_callback, assign_green_button_callback
 from modules.buzzer import buzz_once
+from modules.buttons import assign_red_button_callback, assign_green_button_callback
 from modules.encoder import assign_encoder_left_callback, assign_encoder_right_callback
-import modules.lib.oled.SSD1331 as SSD1331
 
+from modules.rfid_reader import RfidReader
+import modules.lib.oled.SSD1331 as SSD1331
 from mqtt_client import MqttClient
 
-from rfid_test import RfidTest
 from captcha import Captcha
 from encoder_lock import EncoderLock
 
@@ -21,8 +20,8 @@ class Safe:
         self.pixels = neopixel.NeoPixel(board.D18, 8, brightness=1.0/32, auto_write=False)
         self.display = SSD1331.SSD1331()
         self.display.Init()
+        self.rfid = RfidReader()
         
-        self.rfid_test = RfidTest()
         self.captcha = Captcha(self.display)
         self.encoder_lock = EncoderLock(self.pixels, [55, 161, 21, 11, 222, 0, 255, 65])
         
@@ -32,6 +31,10 @@ class Safe:
 
         self.running = True
         self.setup_idle_timeout()
+        
+# =========================================================================
+# ------------------------------    TIMEOUT    ----------------------------
+# =========================================================================
 
     def setup_idle_timeout(self):
         def monitor_timeout():
@@ -44,8 +47,27 @@ class Safe:
 
     def record_activity(self):
         self.last_activity_time = time.time()
+        
+# =========================================================================
+# ------------------------------    DISPLAY    ----------------------------
+# =========================================================================
 
-    def start(self):
+    def display_image(self, image_path):
+        self.display.ShowImage(image_path, 0, 0)
+    
+    def display_text(self, text):
+        self.display.clear()
+        self.display.text(text, 0, 0)
+        
+    def display_progress(self, progress): # from 1 to 4 on diodes
+        for i in range(4):
+            
+        
+# =========================================================================
+# ------------------------------    MAIN    -------------------------------
+# =========================================================================
+
+    def start(self): # czy ta funkcja jest potrzebna? idk
         self.reset_to_start()
         while self.running:
             time.sleep(0.1)
@@ -57,14 +79,18 @@ class Safe:
         time.sleep(2)
         self.setup_rfid_test()
 
-    def setup_rfid_test(self):
+# =========================================================================
+# ------------------------------    TESTS    ------------------------------
+# =========================================================================
+
+    def setup_rfid_test(self): #test 1 - RFID
         def handle_server_response(response):
             if response == "VALID":
                 self.current_test = 1
                 self.setup_captcha_test()
             elif response == "INVALID":
                 buzz_once()
-                self.rfid_test.run_once() # nie wiem czy konieczne?
+                self.rfid.detect_card_once() # nie wiem czy konieczne?
             else:
                 buzz_once()
                 buzz_once()
@@ -72,17 +98,15 @@ class Safe:
                 
         def on_card_scanned(uid_num, uid_list, now_str):
             self.record_activity()
-
             self.mqtt_client.set_callback(handle_server_response)
-            
             msg_str = f"KARTA: {uid_num}, UID_LIST: {uid_list}, TIME: {now_str}"
             self.mqtt_client.publish(msg_str)
                 
-        self.rfid_test.set_callback(on_card_scanned)
-        self.rfid_test.run_once()
+        self.rfid.set_callback(on_card_scanned)
+        self.rfid.detect_card_once()
         self.display.ShowImage("modules/lib/oled/test1_rfid.png", 0, 0)
 
-    def setup_captcha_test(self):
+    def setup_captcha_test(self): #test 2 - CAPTCHA
         assign_encoder_left_callback(lambda: self.captcha.translate_piece(-1))
         assign_encoder_right_callback(lambda: self.captcha.translate_piece(1))
 
@@ -98,7 +122,7 @@ class Safe:
         assign_green_button_callback(on_confirm)
         self.captcha.display.ShowImage("lib/oled/captcha_test.png", 0, 0)
 
-    def setup_encoder_lock_test(self):
+    def setup_encoder_lock_test(self): #test 3 - ENCODER LOCK
         assign_encoder_left_callback(self.encoder_lock.encoder_left_callback)
         assign_encoder_right_callback(self.encoder_lock.encoder_right_callback)
         assign_red_button_callback(self.encoder_lock.red_button_callback)
@@ -114,10 +138,10 @@ class Safe:
                 buzz_once()
                 
         self.encoder_lock.assign_confirm_callback(on_confirm)
-        self.captcha.display.ShowImage("lib/oled/safe_lock_test.png", 0, 0)
         self.encoder_lock.run()
+        self.captcha.display.ShowImage("lib/oled/safe_lock_test.png", 0, 0)
 
-    def setup_button_test(self):
+    def setup_button_test(self): #test 4 - BUTTONS
         def on_green_pressed():
             self.record_activity()
             self.on_success()
