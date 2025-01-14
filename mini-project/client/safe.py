@@ -2,14 +2,16 @@ import time
 import threading
 import neopixel
 import board
+from PIL import Image
 
 from modules.buzzer import buzz_once
 from modules.buttons import assign_red_button_callback, assign_green_button_callback
 from modules.encoder import assign_encoder_left_callback, assign_encoder_right_callback
+from modules.diodes import display_progress
+from modules.oled_display import display_image_from_path, display_text
 
 from modules.rfid_reader import RfidReader
-import modules.lib.oled.SSD1331 as SSD1331
-from mqtt_client import MqttClient
+from mqtt_client import MqttClient, RFID_POST_TOPIC, ENCODER_LOCK_POST_TOPIC
 
 from captcha import Captcha
 from encoder_lock import EncoderLock
@@ -18,14 +20,14 @@ class Safe:
     def __init__(self):
         self.mqtt_client = MqttClient()
         self.pixels = neopixel.NeoPixel(board.D18, 8, brightness=1.0/32, auto_write=False)
-        self.display = SSD1331.SSD1331()
-        self.display.Init()
+
         self.rfid = RfidReader()
         
         self.captcha = Captcha(self.display)
         self.encoder_lock = EncoderLock(self.pixels, [55, 161, 21, 11, 222, 0, 255, 65])
         
         self.current_test = 0
+        self.current_rfid = ""
         self.last_activity_time = time.time()
         self.timeout_seconds = 60
 
@@ -47,22 +49,7 @@ class Safe:
 
     def record_activity(self):
         self.last_activity_time = time.time()
-        
-# =========================================================================
-# ------------------------------    DISPLAY    ----------------------------
-# =========================================================================
-
-    def display_image(self, image_path):
-        self.display.ShowImage(image_path, 0, 0)
-    
-    def display_text(self, text):
-        self.display.clear()
-        self.display.text(text, 0, 0)
-        
-    def display_progress(self, progress): # from 1 to 4 on diodes
-        for i in range(4):
-            
-        
+           
 # =========================================================================
 # ------------------------------    MAIN    -------------------------------
 # =========================================================================
@@ -74,8 +61,9 @@ class Safe:
 
     def reset_to_start(self):
         self.current_test = 0
-        self.display.clear()
-        self.display.ShowImage("modules/lib/oled/locked.png", 0, 0)
+        self.current_rfid = ""
+        display_progress(self.current_test)
+        display_image_from_path("modules/lib/oled/locked.png")
         time.sleep(2)
         self.setup_rfid_test()
 
@@ -87,6 +75,7 @@ class Safe:
         def handle_server_response(response):
             if response == "VALID":
                 self.current_test = 1
+                display_progress(self.current_test)
                 self.setup_captcha_test()
             elif response == "INVALID":
                 buzz_once()
@@ -94,18 +83,19 @@ class Safe:
             else:
                 buzz_once()
                 buzz_once()
-                print("unknown response from server:", response)
+                print("unknown response from server: ", response)
                 
         def on_card_scanned(uid_num, uid_list, now_str):
             self.record_activity()
             self.mqtt_client.set_callback(handle_server_response)
-            msg_str = f"KARTA: {uid_num}, UID_LIST: {uid_list}, TIME: {now_str}"
-            self.mqtt_client.publish(msg_str)
+            msg_str = f"{uid_num},{uid_list},{now_str}"
+            self.current_rfid = uid_num
+            self.mqtt_client.publish(RFID_POST_TOPIC, msg_str)
                 
         self.rfid.set_callback(on_card_scanned)
         self.rfid.detect_card_once()
-        self.display.ShowImage("modules/lib/oled/test1_rfid.png", 0, 0)
-
+        display_image_from_path("modules/lib/oled/locked.png")
+        
     def setup_captcha_test(self): #test 2 - CAPTCHA
         assign_encoder_left_callback(lambda: self.captcha.translate_piece(-1))
         assign_encoder_right_callback(lambda: self.captcha.translate_piece(1))
@@ -114,43 +104,58 @@ class Safe:
             self.record_activity()
             if self.captcha.confirm_position():
                 self.current_test = 2
+                display_progress(self.current_test)
                 self.setup_encoder_lock_test()
             else:
                 buzz_once()
 
         assign_red_button_callback(lambda: self.captcha.switch_axis())
         assign_green_button_callback(on_confirm)
-        self.captcha.display.ShowImage("lib/oled/captcha_test.png", 0, 0)
-
+        self.captcha.update_display()
+        
     def setup_encoder_lock_test(self): #test 3 - ENCODER LOCK
         assign_encoder_left_callback(self.encoder_lock.encoder_left_callback)
         assign_encoder_right_callback(self.encoder_lock.encoder_right_callback)
         assign_red_button_callback(self.encoder_lock.red_button_callback)
         assign_green_button_callback(self.encoder_lock.green_button_callback)
-        
-        def on_confirm():
-            self.record_activity()
-            if self.encoder_lock.confirm_solution():
+
+        def handle_server_response(response):
+            if response == "VALID":
                 self.encoder_lock.running = False
                 self.current_test = 3
+                display_progress(self.current_test)
                 self.setup_button_test()
+            elif response == "INVALID":
+                buzz_once()
+                # can or can not reset the encoder lock
             else:
                 buzz_once()
+                buzz_once()
+                print("unknown response from server: ", response)
+
+        def on_confirm(hue_values):
+            self.record_activity()
+            self.mqtt_client.set_callback(handle_server_response)
+            # hue values separated by commas for easy parsing
+            msg_str = f"{self.current_rfid}:{','.join(map(str, hue_values))}"
+            self.mqtt_client.publish(ENCODER_LOCK_POST_TOPIC, msg_str)
                 
         self.encoder_lock.assign_confirm_callback(on_confirm)
         self.encoder_lock.run()
-        self.captcha.display.ShowImage("lib/oled/safe_lock_test.png", 0, 0)
+        display_image_from_path("lib/oled/safe_lock_test.png")
 
     def setup_button_test(self): #test 4 - BUTTONS
         def on_green_pressed():
             self.record_activity()
+            self.current_test = 4
+            display_progress(self.current_test)
             self.on_success()
 
         assign_green_button_callback(on_green_pressed)
-        self.captcha.display.ShowImage("lib/oled/press_green.png", 0, 0)
+        display_image_from_path("lib/oled/press_green.png")
 
     def on_success(self):
-        self.captcha.display.ShowImage("lib/oled/success.png", 0, 0)
+        display_image_from_path("lib/oled/success.png")
         print("Access granted!")
         self.running = False
 
