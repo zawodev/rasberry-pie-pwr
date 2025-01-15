@@ -109,6 +109,7 @@ class App(ctk.CTk):
             e.pack(side="left", padx=3)
             entry_safe_list.append(e)
 
+            # wywalic do funkcji ososbnej i dodac RGB -> HUE
             def pick_color_factory(entry_widget=e):
                 def pick_color():
                     color_code = colorchooser.askcolor(title="Wybierz kolor")
