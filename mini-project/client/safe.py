@@ -11,7 +11,7 @@ from modules.diodes import display_progress
 from modules.oled_display import display_image_from_path, display_text
 
 from modules.rfid_reader import RfidReader
-from mqtt_client import MqttClient, RFID_POST_TOPIC, ENCODER_LOCK_POST_TOPIC
+from mqtt_client import MqttClient
 
 from captcha import Captcha
 from encoder_lock import EncoderLock
@@ -23,7 +23,7 @@ class Safe:
 
         self.rfid = RfidReader()
         
-        self.captcha = Captcha(self.display)
+        self.captcha = Captcha()
         self.encoder_lock = EncoderLock(self.pixels, [55, 161, 21, 11, 222, 0, 255, 65])
         
         self.current_test = 0
@@ -87,10 +87,10 @@ class Safe:
                 
         def on_card_scanned(uid_num, uid_list, now_str):
             self.record_activity()
-            self.mqtt_client.set_callback(handle_server_response)
+            self.mqtt_client.set_callback("RFID", handle_server_response)
             msg_str = f"{uid_num},{uid_list},{now_str}"
             self.current_rfid = uid_num
-            self.mqtt_client.publish(RFID_POST_TOPIC, msg_str)
+            self.mqtt_client.publish("RFID", msg_str)
                 
         self.rfid.set_callback(on_card_scanned)
         self.rfid.detect_card_once()
@@ -135,10 +135,10 @@ class Safe:
 
         def on_confirm(hue_values):
             self.record_activity()
-            self.mqtt_client.set_callback(handle_server_response)
+            self.mqtt_client.set_callback("ENCODER_LOCK", handle_server_response)
             # hue values separated by commas for easy parsing
             msg_str = f"{self.current_rfid}:{','.join(map(str, hue_values))}"
-            self.mqtt_client.publish(ENCODER_LOCK_POST_TOPIC, msg_str)
+            self.mqtt_client.publish("ENCODER_LOCK", msg_str)
                 
         self.encoder_lock.assign_confirm_callback(on_confirm)
         self.encoder_lock.run()

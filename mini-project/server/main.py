@@ -1,5 +1,7 @@
 from admin_app import App
 
 if __name__ == "__main__":
-    app = App("mini-project/server/database.db")
+    import os
+    path = os.path.join(os.getcwd(), "database.db")
+    app = App(path)
     app.mainloop()

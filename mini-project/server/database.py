@@ -230,7 +230,12 @@ def delete_request(conn, request_id: int):
 
 
 if __name__ == "__main__":
-    connection = create_connection("mini-project/server/database.db")
+    import os
+    path = os.path.join(os.getcwd(), "database.db")
+    connection = create_connection(path)
+    
+    import os
+    print(os.getcwd())
 
     if connection:
         create_tables(connection)

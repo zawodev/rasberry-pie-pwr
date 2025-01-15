@@ -17,7 +17,7 @@ class EncoderLock:
         self.confirm_callback = default_callback
 
     def hue_to_rgb(self, hue, saturation=1.0, brightness=1.0):
-        h = hue / 255.0 * 360.0
+        h = hue # 0-360
         s = saturation
         v = brightness
 
