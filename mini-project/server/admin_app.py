@@ -1,3 +1,5 @@
+import customtkinter as ctk
+from tkinter import ttk, messagebox, colorchooser  # still need these from tkinter
 from database import (
     create_connection,
     create_tables,
@@ -8,90 +10,117 @@ from database import (
     get_all_users,
     delete_user
 )
-import tkinter as tk
-from tkinter import ttk, messagebox, colorchooser
 
-class App(tk.Tk):
+
+ctk.set_appearance_mode("System")  # "Dark", "Light", or "System"
+ctk.set_default_color_theme("blue")  # "green", "dark-blue", or path to a custom theme .json
+
+class App(ctk.CTk):
     def __init__(self, db_path="mini-project/server/database.db"):
         super().__init__()
         self.title("GUI Admin App")
 
-        # Połączenie z bazą i utworzenie tabel
+        # Window size
+        self.geometry("600x400")
+        self.resizable(False, False)
+
+        # Connect to database
         self.conn = create_connection(db_path)
         if self.conn:
             create_tables(self.conn)
 
-        # Etykieta tytułowa
-        label = tk.Label(self, text="Menu główne", font=("Arial", 16, "bold"))
+        # Title label
+        label = ctk.CTkLabel(self, text="Menu główne", 
+                             font=ctk.CTkFont(size=16, weight="bold"))
         label.pack(pady=20)
 
-        # 1) Przycisk: Wyświetlenie i usuwanie użytkowników
-        btn_show_users = tk.Button(self, text="Pokaż użytkowników", width=20, command=self.show_users_window)
+        # 1) Button: Show/Delete Users
+        btn_show_users = ctk.CTkButton(self, text="Pokaż użytkowników",
+                                       width=200,
+                                       command=self.show_users_window)
         btn_show_users.pack(pady=5)
 
-        # 2) Przycisk: Dodanie nowego użytkownika
-        btn_new_user = tk.Button(self, text="Dodaj nowego użytkownika", width=20, command=self.show_add_user_window)
+        # 2) Button: Add New User
+        btn_new_user = ctk.CTkButton(self, text="Dodaj nowego użytkownika",
+                                     width=200,
+                                     command=self.show_add_user_window)
         btn_new_user.pack(pady=5)
 
-        # 3) Przycisk: Wyświetlenie ewidencji
-        btn_login_record = tk.Button(self, text="Pokaż ewidencję logowań", width=20, command=self.show_login_record_window)
+        # 3) Button: Show Login Records (Ewidencja)
+        btn_login_record = ctk.CTkButton(self, text="Pokaż ewidencję logowań",
+                                         width=200,
+                                         command=self.show_login_record_window)
         btn_login_record.pack(pady=5)
 
-        # 4) Przycisk: Obróbka (Process) Requests
-        btn_requests = tk.Button(self, text="Pokaż prośby o rejestrację", width=20, command=self.show_requests_window)
+        # 4) Button: Process Requests
+        btn_requests = ctk.CTkButton(self, text="Pokaż prośby o rejestrację",
+                                     width=200,
+                                     command=self.show_requests_window)
         btn_requests.pack(pady=5)
 
+        # Optionally style the Treeview across the entire application
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Treeview",
+                        background="#2b2b2b",
+                        foreground="white",
+                        rowheight=25,
+                        fieldbackground="#2b2b2b")
+        style.map("Treeview", background=[("selected", "#1f538d")])
+
+
     # -------------------------------------------------------
-    # 1) Okno do dodawania nowego użytkownika
+    # 1) Window: Add New User
     # -------------------------------------------------------
     def show_add_user_window(self):
-        win = tk.Toplevel(self)
+        # Use CTkToplevel for a consistent customtkinter style
+        win = ctk.CTkToplevel(self)
         win.title("Dodaj nowego użytkownika")
+        win.geometry("450x500")
+        win.resizable(False, False)
 
-        tk.Label(win, text="ID Użytkownika (ID karty):").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        tk.Label(win, text="Login:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        tk.Label(win, text="Hasło:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        tk.Label(win, text="Kombinacja sejfu (8 liczb 0..255):").grid(row=3, column=0, sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(win, text="ID Użytkownika (ID karty):").grid(row=0, column=0, 
+                                                                 sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(win, text="Login:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(win, text="Hasło:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(win, text="Kombinacja sejfu (8 liczb 0..255):").grid(row=3, column=0, 
+                                                                         sticky="w", padx=5, pady=5)
 
-        entry_user_id = tk.Entry(win, width=30)
-        entry_login = tk.Entry(win, width=30)
-        entry_password = tk.Entry(win, show="*", width=30)
+        entry_user_id = ctk.CTkEntry(win, width=200)
+        entry_login = ctk.CTkEntry(win, width=200)
+        entry_password = ctk.CTkEntry(win, show="*", width=200)
 
         entry_user_id.grid(row=0, column=1, padx=5, pady=5)
         entry_login.grid(row=1, column=1, padx=5, pady=5)
         entry_password.grid(row=2, column=1, padx=5, pady=5)
 
-        # Ramka na 8 pól z wartościami 0..255
-        frame_safe = tk.Frame(win)
+        frame_safe = ctk.CTkFrame(win)
         frame_safe.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
-        # Przygotujemy listę (entry_safe_list) i dla każdego elementu dodamy Entry + przycisk
         entry_safe_list = []
         for i in range(8):
-            sub_frame = tk.Frame(frame_safe)
-            sub_frame.pack(side="top", anchor="w")
+            sub_frame = ctk.CTkFrame(frame_safe)
+            sub_frame.pack(side="top", anchor="w", pady=2)
 
-            lbl_i = tk.Label(sub_frame, text=f"{i+1}.")
+            lbl_i = ctk.CTkLabel(sub_frame, text=f"{i+1}.")
             lbl_i.pack(side="left")
 
-            e = tk.Entry(sub_frame, width=5)
+            e = ctk.CTkEntry(sub_frame, width=50)
             e.pack(side="left", padx=3)
             entry_safe_list.append(e)
 
-            # Przycisk do color pickera
             def pick_color_factory(entry_widget=e):
                 def pick_color():
                     color_code = colorchooser.askcolor(title="Wybierz kolor")
                     if color_code and color_code[0]:
-                        # color_code to ((R, G, B), '#rrggbb')
                         r, g, b = color_code[0]
-                        # Konwersja np. do skali szarości
                         gray = int((r + g + b) // 3)
-                        entry_widget.delete(0, tk.END)
+                        entry_widget.delete(0, ctk.END)
                         entry_widget.insert(0, str(gray))
                 return pick_color
 
-            btn_color = tk.Button(sub_frame, text="Kolor", command=pick_color_factory(e))
+            btn_color = ctk.CTkButton(sub_frame, text="Kolor", width=50,
+                                      command=pick_color_factory(e))
             btn_color.pack(side="left", padx=2)
 
         def on_add():
@@ -103,7 +132,6 @@ class App(tk.Tk):
                 messagebox.showerror("Error", "Uzupełnij wszystkie pola: ID, Login, Hasło.")
                 return
 
-            # Odczytujemy 8 liczb z entry
             safe_comb_values = []
             for i, e in enumerate(entry_safe_list):
                 val_str = e.get().strip()
@@ -124,113 +152,120 @@ class App(tk.Tk):
                 messagebox.showerror("Error", "Musisz podać dokładnie 8 liczb (0..255).")
                 return
 
-            # Dodanie do bazy
+            # Add to database
             add_user(self.conn, user_id, login, password, safe_comb_values)
             messagebox.showinfo("OK", f"Dodano nowego użytkownika: {user_id}")
             win.destroy()
 
-        btn_save = tk.Button(win, text="Dodaj", command=on_add)
+        btn_save = ctk.CTkButton(win, text="Dodaj", command=on_add)
         btn_save.grid(row=4, column=1, pady=10, sticky="e")
 
     # -------------------------------------------------------
-    # 2) Okno wyświetlające login_record (Ewidencja)
+    # 2) Window: Show Ewidencja Logowań
     # -------------------------------------------------------
     def show_login_record_window(self):
-        win = tk.Toplevel(self)
+        win = ctk.CTkToplevel(self)
         win.title("Ewidencja logowań")
+        win.geometry("900x400")
+        win.resizable(False, False)
 
         records = get_all_login_records(self.conn)
 
-        tree = ttk.Treeview(win, columns=("login_record_id", "user_id", "date_time", "status"), show="headings")
+        tree = ttk.Treeview(win, columns=("login_record_id", "user_id", "date_time", "status"), 
+                            show="headings")
         tree.heading("login_record_id", text="Login Record ID")
         tree.heading("user_id", text="User ID")
         tree.heading("date_time", text="Date/Time")
         tree.heading("status", text="Status")
-
         tree.pack(fill="both", expand=True)
 
         for row in records:
-            tree.insert("", tk.END, values=row)
+            tree.insert("", ctk.END, values=row)
 
     # -------------------------------------------------------
-    # 3) Okno do obsługi Requests (Process requests)
+    # 3) Window: Process Requests
     # -------------------------------------------------------
     def show_requests_window(self):
-        win = tk.Toplevel(self)
+        win = ctk.CTkToplevel(self)
         win.title("Prośby o rejestrację")
+        win.geometry("1100x500")
+        win.resizable(False, False)
 
-        # Lewe okno: lista requestów
-        frame_left = tk.Frame(win)
+        # Left frame: request list
+        frame_left = ctk.CTkFrame(win)
         frame_left.pack(side="left", fill="both", expand=True, padx=10, pady=10)
 
-        tk.Label(frame_left, text="Lista próśb:").pack(anchor="w")
+        ctk.CTkLabel(frame_left, text="Lista próśb:").pack(anchor="w")
 
-        tree_req = ttk.Treeview(frame_left, columns=("request_id", "user_id", "date_time"), show="headings", height=10)
+        tree_req = ttk.Treeview(frame_left, columns=("request_id", "user_id", "date_time"), 
+                                show="headings", height=10)
         tree_req.heading("request_id", text="Req ID")
         tree_req.heading("user_id", text="Requested user_id")
         tree_req.heading("date_time", text="Date/Time")
         tree_req.pack(fill="both", expand=True)
 
-        # Pobierz wszystkie requesty z bazy
+        # Get requests from DB
         requests = get_all_requests(self.conn)
         for row in requests:
-            tree_req.insert("", tk.END, values=row)
+            tree_req.insert("", ctk.END, values=row)
 
-        # Prawe okno: formularz do dodania usera na podstawie requestu
-        frame_right = tk.Frame(win)
+        # Right frame: form to add user from request
+        frame_right = ctk.CTkFrame(win)
         frame_right.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
-        tk.Label(frame_right, text="Wybrane ID (Request ID):").grid(row=0, column=0, sticky="w", padx=5, pady=5)
-        tk.Label(frame_right, text="Login:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
-        tk.Label(frame_right, text="Hasło:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        tk.Label(frame_right, text="Kombinacja (8 liczb 0..255):").grid(row=3, column=0, sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(frame_right, text="Wybrane ID (Request ID):").grid(row=0, column=0, 
+                                                                       sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(frame_right, text="Login:").grid(row=1, column=0, 
+                                                      sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(frame_right, text="Hasło:").grid(row=2, column=0, 
+                                                      sticky="w", padx=5, pady=5)
+        ctk.CTkLabel(frame_right, text="Kombinacja (8 liczb 0..255):").grid(row=3, column=0, 
+                                                                           sticky="w", padx=5, pady=5)
 
-        entry_req_id = tk.Entry(frame_right, width=20)
-        entry_login = tk.Entry(frame_right, width=30)
-        entry_password = tk.Entry(frame_right, width=30, show="*")
+        entry_req_id = ctk.CTkEntry(frame_right, width=150)
+        entry_login = ctk.CTkEntry(frame_right, width=200)
+        entry_password = ctk.CTkEntry(frame_right, width=200, show="*")
 
         entry_req_id.grid(row=0, column=1, padx=5, pady=5)
         entry_login.grid(row=1, column=1, padx=5, pady=5)
         entry_password.grid(row=2, column=1, padx=5, pady=5)
 
-        # Ramka z 8 polami
-        frame_right_safe = tk.Frame(frame_right)
+        frame_right_safe = ctk.CTkFrame(frame_right)
         frame_right_safe.grid(row=3, column=1, padx=5, pady=5, sticky="w")
 
         entry_req_safe_list = []
         for i in range(8):
-            sub_frame = tk.Frame(frame_right_safe)
-            sub_frame.pack(side="top", anchor="w")
+            sub_frame = ctk.CTkFrame(frame_right_safe)
+            sub_frame.pack(side="top", anchor="w", pady=2)
 
-            lbl_i = tk.Label(sub_frame, text=f"{i+1}.")
+            lbl_i = ctk.CTkLabel(sub_frame, text=f"{i+1}.")
             lbl_i.pack(side="left")
 
-            e = tk.Entry(sub_frame, width=5)
+            e = ctk.CTkEntry(sub_frame, width=50)
             e.pack(side="left", padx=3)
             entry_req_safe_list.append(e)
 
-            # Przycisk do color pickera
             def pick_color_factory(entry_widget=e):
                 def pick_color():
                     color_code = colorchooser.askcolor(title="Wybierz kolor")
                     if color_code and color_code[0]:
                         r, g, b = color_code[0]
                         gray = int((r + g + b) // 3)
-                        entry_widget.delete(0, tk.END)
+                        entry_widget.delete(0, ctk.END)
                         entry_widget.insert(0, str(gray))
                 return pick_color
 
-            btn_color = tk.Button(sub_frame, text="Kolor", command=pick_color_factory(e))
+            btn_color = ctk.CTkButton(sub_frame, text="Kolor", width=50,
+                                      command=pick_color_factory(e))
             btn_color.pack(side="left", padx=2)
 
         def on_request_select(event):
-            # Gdy user wybierze wiersz z TreeView, wstawiamy ID requestu do entry_req_id
             selected = tree_req.focus()
             if not selected:
                 return
             values = tree_req.item(selected, "values")  # (request_id, user_id, date_time)
             req_id = values[0]
-            entry_req_id.delete(0, tk.END)
+            entry_req_id.delete(0, ctk.END)
             entry_req_id.insert(0, str(req_id))
 
         tree_req.bind("<<TreeviewSelect>>", on_request_select)
@@ -250,7 +285,7 @@ class App(tk.Tk):
                 messagebox.showerror("Error", "Niepoprawny Request ID.")
                 return
 
-            # Odczyt requestu z bazy, żeby poznać user_id
+            # Get request from DB
             all_req = get_all_requests(self.conn)
             selected_req = None
             for r in all_req:
@@ -263,9 +298,9 @@ class App(tk.Tk):
                 messagebox.showerror("Error", "Brak takiego requestu w bazie.")
                 return
 
-            requested_user_id = selected_req[1]  # user_id z wiersza w Requests
+            requested_user_id = selected_req[1]  # user_id from that row
 
-            # Zbierzmy 8 liczb
+            # Gather 8 numbers
             safe_comb_values = []
             for i, e in enumerate(entry_req_safe_list):
                 val_str = e.get().strip()
@@ -286,84 +321,83 @@ class App(tk.Tk):
                 messagebox.showerror("Error", "Musisz podać dokładnie 8 liczb (0..255).")
                 return
 
-            # Dodanie usera
+            # Add user
             add_user(self.conn, requested_user_id, new_login, new_pass, safe_comb_values)
             messagebox.showinfo("OK", f"Dodano użytkownika o ID: {requested_user_id}")
 
-            # Usuwamy rekord z requests
+            # Delete request record
             delete_request(self.conn, req_id)
             messagebox.showinfo("OK", "Rekord request został usunięty.")
 
-            # Odświeżamy listę w drzewku
+            # Refresh the request list
             for item in tree_req.get_children():
                 tree_req.delete(item)
             updated_requests = get_all_requests(self.conn)
             for row in updated_requests:
-                tree_req.insert("", tk.END, values=row)
+                tree_req.insert("", ctk.END, values=row)
 
-            # Czyścimy formularz
-            entry_req_id.delete(0, tk.END)
-            entry_login.delete(0, tk.END)
-            entry_password.delete(0, tk.END)
+            # Clear form
+            entry_req_id.delete(0, ctk.END)
+            entry_login.delete(0, ctk.END)
+            entry_password.delete(0, ctk.END)
             for e in entry_req_safe_list:
-                e.delete(0, tk.END)
+                e.delete(0, ctk.END)
 
-        btn_add_user = tk.Button(frame_right, text="Dodaj", command=on_add_user_from_request)
+        btn_add_user = ctk.CTkButton(frame_right, text="Dodaj", command=on_add_user_from_request)
         btn_add_user.grid(row=4, column=1, padx=5, pady=10, sticky="e")
 
     # -------------------------------------------------------
-    # 4) Okno do wyświetlania i usuwania użytkowników
+    # 4) Window: Show and Delete Users
     # -------------------------------------------------------
     def show_users_window(self):
-        win = tk.Toplevel(self)
+        win = ctk.CTkToplevel(self)
         win.title("Lista Użytkowników")
+        win.geometry("1000x400")
+        win.resizable(False, False)
 
         users = get_all_users(self.conn)
 
-        frame_top = tk.Frame(win)
+        frame_top = ctk.CTkFrame(win)
         frame_top.pack(fill="both", expand=True, padx=10, pady=10)
 
-        tree_users = ttk.Treeview(frame_top, columns=("id", "login", "password", "safe_combination"), show="headings", height=10)
+        tree_users = ttk.Treeview(frame_top, columns=("id", "login", "password", "safe_combination"), 
+                                  show="headings", height=10)
         tree_users.heading("id", text="ID")
         tree_users.heading("login", text="Login")
         tree_users.heading("password", text="Hasło")
-        tree_users.heading("safe_combination", text="Kombinacja (JSON)")
+        tree_users.heading("safe_combination", text="Kombinacja do sejfu")
 
         tree_users.pack(side="left", fill="both", expand=True)
 
-        # Dodaj pionowy scrollbar
+        # Vertical scrollbar
         vsb = ttk.Scrollbar(frame_top, orient="vertical", command=tree_users.yview)
         tree_users.configure(yscroll=vsb.set)
         vsb.pack(side="right", fill="y")
 
-        # Wstaw dane do Treeview
+        # Insert data
         for u in users:
-            # u to krotka (id, login, password, safe_combination)
-            tree_users.insert("", tk.END, values=u)
+            tree_users.insert("", ctk.END, values=u)
 
-        # Dolna część – przycisk do usunięcia
-        frame_bottom = tk.Frame(win)
+        frame_bottom = ctk.CTkFrame(win)
         frame_bottom.pack(fill="x", padx=10, pady=10)
 
         def on_delete_user():
-            selected = tree_users.focus()  # aktualny zaznaczony wiersz
+            selected = tree_users.focus()
             if not selected:
                 messagebox.showwarning("Warning", "Nie wybrano żadnego użytkownika.")
                 return
             values = tree_users.item(selected, "values")  # (id, login, password, safe_combination)
             user_id = values[0]
 
-            # Potwierdzenie
             if messagebox.askyesno("Potwierdzenie", f"Czy na pewno usunąć użytkownika o ID '{user_id}'?"):
                 delete_user(self.conn, user_id)
-
-                # Odświeżamy listę
+                # Refresh
                 tree_users.delete(*tree_users.get_children())
                 new_users = get_all_users(self.conn)
                 for u2 in new_users:
-                    tree_users.insert("", tk.END, values=u2)
+                    tree_users.insert("", ctk.END, values=u2)
 
-        btn_delete = tk.Button(frame_bottom, text="Usuń", command=on_delete_user)
+        btn_delete = ctk.CTkButton(frame_bottom, text="Usuń", command=on_delete_user)
         btn_delete.pack(side="right")
 
 

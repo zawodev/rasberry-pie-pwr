@@ -90,30 +90,6 @@ def add_user(conn, user_id: str, login: str, password: str, safe_combination: li
     except sqlite3.Error as e:
         print("Błąd podczas dodawania użytkownika:", e)
 
-def get_user_by_id(conn, user_id: str):
-    """
-    Pobiera użytkownika z tabeli Users po ID (typ TEXT).
-    Zwraca słownik z danymi lub None, jeśli nie ma takiego użytkownika.
-    """
-    try:
-        cursor = conn.cursor()
-        query = "SELECT id, login, password, safe_combination FROM Users WHERE id = ?"
-        cursor.execute(query, (user_id,))
-        row = cursor.fetchone()
-        if row:
-            # Odczytujemy safe_combination z JSON
-            safe_combination = json.loads(row[3]) if row[3] else None
-            return {
-                'id': row[0],
-                'login': row[1],
-                'password': row[2],
-                'safe_combination': safe_combination
-            }
-        return None
-    except sqlite3.Error as e:
-        print("Błąd podczas pobierania użytkownika:", e)
-        return None
-
 def get_all_users(conn):
     """
     Zwraca listę krotek (id, login, password, safe_combination) wszystkich użytkowników.
@@ -127,23 +103,6 @@ def get_all_users(conn):
     except sqlite3.Error as e:
         print(e)
         return []
-
-def update_user_password(conn, user_id: str, new_password: str):
-    """
-    Aktualizuje hasło użytkownika (po ID typu TEXT).
-    """
-    try:
-        cursor = conn.cursor()
-        query = """
-        UPDATE Users
-        SET password = ?
-        WHERE id = ?
-        """
-        cursor.execute(query, (new_password, user_id))
-        conn.commit()
-        print(f"Zaktualizowano hasło użytkownika ID = {user_id}.")
-    except sqlite3.Error as e:
-        print("Błąd podczas aktualizacji hasła:", e)
 
 def delete_user(conn, user_id: str):
     """
@@ -168,7 +127,7 @@ def add_login_record(conn, user_id: str, status: str):
     Dodaje wpis do tabeli LoginRecords.
     Wstawiamy aktualną datę/czas w polu date_time.
     user_id: tekstowe ID użytkownika (powiązane z Users.id)
-    status: np. "CHECK_IN", "CHECK_OUT", itp.
+    status: np. "ACCEPTED", "FAILED"
     """
     try:
         cursor = conn.cursor()
@@ -240,75 +199,62 @@ def delete_request(conn, request_id: int):
     """
     Usuwa rekord z tabeli Requests po request_id.
     """
+    # try:
+    #     cursor = conn.cursor()
+    #     query = "DELETE FROM Requests WHERE request_id = ?"
+    #     cursor.execute(query, (request_id,))
+    #     conn.commit()
+    # except sqlite3.Error as e:
+    #     print(e)
     try:
         cursor = conn.cursor()
-        query = "DELETE FROM Requests WHERE request_id = ?"
-        cursor.execute(query, (request_id,))
-        conn.commit()
+
+        # Najpierw ustal, jakiego user_id dotyczy prośba o request_id:
+        cursor.execute("SELECT user_id FROM Requests WHERE request_id = ?", (request_id,))
+        row = cursor.fetchone()
+
+        if row is not None:
+            user_id = row[0]
+
+            # Teraz usuń *wszystkie* wiersze w Requests, gdzie user_id jest taki sam
+            cursor.execute("DELETE FROM Requests WHERE user_id = ?", (user_id,))
+            conn.commit()
+            print(f"Usunięto wszystkie prośby w Requests związane z user_id = {user_id}.")
+        else:
+            print(f"Brak prośby o request_id={request_id} w tabeli Requests. Nic nie usuwam.")
+
     except sqlite3.Error as e:
-        print(e)
+        print("Błąd podczas usuwania requestu:", e)
 
 
-# =================================
-# Główny blok wykonywalny (przykład użycia)
-# =================================
+
 
 if __name__ == "__main__":
-    # Połączenie z bazą (lub utworzenie nowego pliku DB)
     connection = create_connection("mini-project/server/database.db")
 
     if connection:
-        # Tworzenie tabel (jeśli jeszcze nie istnieją)
         create_tables(connection)
 
-        # Przykład dodania użytkownika z tekstowym user_id
         user_id_example = "CARD_001"
         user_login = "jan_kowalski"
         user_password = "haslo123"
 
-        # Kombinacja sejfu to lista ośmiu 3-elementowych krotek RGB (np. same zera i jedynki dla uproszczenia):
-        # [(R1,G1,B1), (R2,G2,B2), ..., (R8,G8,B8)]
-        user_safe_combination = [
-            (255, 0, 0),
-            (0, 255, 0),
-            (0, 0, 255),
-            (128, 128, 128),
-            (255, 255, 0),
-            (255, 165, 0),
-            (0, 255, 255),
-            (255, 0, 255)
-        ]
+        user_safe_combination = [255, 0, 100, 120, 200, 0, 0, 240]
 
-        # Dodanie użytkownika
         add_user(connection, user_id_example, user_login, user_password, user_safe_combination)
 
-        # Pobranie użytkownika
-        user = get_user_by_id(connection, user_id_example)
-        print("Pobrany użytkownik:", user)
+        add_login_record(connection, user_id_example, "ACCEPTED")
 
-        # Aktualizacja hasła
-        update_user_password(connection, user_id_example, "noweHaslo456")
-
-        # Dodanie wpisu do Ewidencja (np. check-in)
-        add_login_record(connection, user_id_example, "CHECK_IN")
-
-        # Dodanie wpisu do Requests
         add_request(connection, "CARD_002")
 
-        # Odczyt wszystkich wpisów z Ewidencja
         login_record_rows = get_all_login_records(connection)
         print("Wszystkie wpisy Ewidencja:")
         for row in login_record_rows:
             print(row)
 
-        # Odczyt wszystkich wpisów z Requests
         requests_rows = get_all_requests(connection)
         print("Wszystkie wpisy Requests:")
         for row in requests_rows:
             print(row)
 
-        # Przykład usunięcia użytkownika
-        # delete_user(connection, user_id_example)
-
-        # Zamknięcie połączenia
         connection.close()

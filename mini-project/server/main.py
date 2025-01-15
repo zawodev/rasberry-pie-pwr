@@ -1,4 +1,5 @@
-# to sie uruchamia jako serwer
+from admin_app import App
 
 if __name__ == "__main__":
-    pass
+    app = App("mini-project/server/database.db")
+    app.mainloop()
