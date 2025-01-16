@@ -3,6 +3,7 @@ import threading
 import neopixel
 import board
 from PIL import Image
+from config import *
 
 from modules.buzzer import buzz_once
 from modules.buttons import assign_red_button_callback, assign_green_button_callback
@@ -62,7 +63,7 @@ class Safe:
     def reset_to_start(self):
         self.current_rfid = ""
         self.set_progress(0)
-        display_image_from_path("modules/lib/oled/locked.png")
+        #display_image_from_path("modules/lib/oled/locked.png")
         time.sleep(2)
         self.setup_rfid_test()
         
@@ -78,10 +79,11 @@ class Safe:
         def handle_server_response(response):
             if response == "VALID":
                 self.set_progress(1)
-                self.setup_captcha_test()
+                self.setup_encoder_lock_test()
+                self.rfid.running = False
             elif response == "INVALID":
                 buzz_once()
-                self.rfid.detect_card_once() # nie wiem czy konieczne?
+                self.rfid.running = True
             else:
                 buzz_once()
                 buzz_once()
@@ -90,13 +92,13 @@ class Safe:
         def on_card_scanned(uid_num, uid_list, now_str):
             self.record_activity()
             self.mqtt_client.set_callback("RFID", handle_server_response)
-            msg_str = f"{uid_num},{uid_list},{now_str}"
+            msg_str = f"{uid_num},{now_str}"
             self.current_rfid = uid_num
             self.mqtt_client.publish("RFID", msg_str)
                 
         self.rfid.set_callback(on_card_scanned)
         self.rfid.detect_card_once()
-        display_image_from_path("modules/lib/oled/locked.png")
+        #display_image_from_path("modules/lib/oled/locked.png")
         
     def setup_captcha_test(self): #test 2 - CAPTCHA
         assign_encoder_left_callback(lambda: self.captcha.translate_piece(-1))
@@ -115,10 +117,10 @@ class Safe:
         self.captcha.update_display()
         
     def setup_encoder_lock_test(self): #test 3 - ENCODER LOCK
-        assign_encoder_left_callback(self.encoder_lock.encoder_left_callback)
-        assign_encoder_right_callback(self.encoder_lock.encoder_right_callback)
-        assign_red_button_callback(self.encoder_lock.red_button_callback)
-        assign_green_button_callback(self.encoder_lock.green_button_callback)
+        assign_encoder_left_callback(lambda: self.encoder_lock.encoder_left_callback())
+        assign_encoder_right_callback(lambda: self.encoder_lock.encoder_right_callback())
+        assign_red_button_callback(lambda: self.encoder_lock.red_button_callback())
+        assign_green_button_callback(lambda: self.encoder_lock.green_button_callback())
 
         def handle_server_response(response):
             if response == "VALID":
@@ -134,15 +136,17 @@ class Safe:
                 print("unknown response from server: ", response)
 
         def on_confirm(hue_values):
+            print("biriri")
             self.record_activity()
             self.mqtt_client.set_callback("ENCODER_LOCK", handle_server_response)
             # hue values separated by commas for easy parsing
             msg_str = f"{self.current_rfid}:{','.join(map(str, hue_values))}"
             self.mqtt_client.publish("ENCODER_LOCK", msg_str)
+            print("biriri2")
                 
-        self.encoder_lock.assign_confirm_callback(on_confirm)
+        self.encoder_lock.assign_confirm_callback(lambda: on_confirm(self.encoder_lock.hue_values))
         self.encoder_lock.run()
-        display_image_from_path("lib/oled/safe_lock_test.png")
+        #display_image_from_path("lib/oled/safe_lock_test.png")
 
     def setup_button_test(self): #test 4 - BUTTONS
         def on_green_pressed():
@@ -151,11 +155,11 @@ class Safe:
             self.on_success()
 
         assign_green_button_callback(on_green_pressed)
-        display_image_from_path("lib/oled/press_green.png")
+        #display_image_from_path("lib/oled/press_green.png")
 
     def on_success(self):
         print("Access granted!")
-        display_image_from_path("lib/oled/success.png")
+        #display_image_from_path("lib/oled/success.png")
         assign_green_button_callback(self.reset_to_start)
         #self.running = False
 

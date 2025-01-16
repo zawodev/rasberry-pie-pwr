@@ -68,9 +68,12 @@ class App(ctk.CTk):
 
     def add_request_mqtt(self, type, msg_str):
         if type == "RFID":
-            uid_num, uid_list, now_str = msg_str.split(",")
+            print(msg_str)
+            uid_num, now_str = msg_str.split(",")
 
             users = get_all_users(self.conn)
+            
+            print(users)
             user_ids = [user[0] for user in users]
 
             if uid_num in user_ids:

@@ -9,7 +9,7 @@ def create_connection(db_file: str):
     """
     conn = None
     try:
-        conn = sqlite3.connect(db_file)
+        conn = sqlite3.connect(db_file, check_same_thread=False)
         print("Połączono z bazą danych:", db_file)
 
         # Włączenie wsparcia dla kluczy obcych (domyślnie w SQLite jest wyłączone)

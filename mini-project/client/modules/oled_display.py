@@ -1,7 +1,7 @@
 # oled_display.py
 
 from PIL import Image
-import lib.oled.SSD1331 as SSD1331
+import modules.lib.oled.SSD1331 as SSD1331
 
 display = SSD1331.SSD1331()
 display.Init()

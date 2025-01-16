@@ -2,7 +2,7 @@ import time
 import math
 
 def default_callback():
-    pass
+    print("aosdoasfo")
 
 class EncoderLock:
     def __init__(self, pixels, correct_solution, tolerance=10):
@@ -41,6 +41,7 @@ class EncoderLock:
         return int((r + m) * 255), int((g + m) * 255), int((b + m) * 255)
 
     def update_leds(self):
+        #print("update leds")
         for i in range(len(self.hue_values)):
             if i < self.current_index:
                 r, g, b = self.hue_to_rgb(self.hue_values[i], brightness=.75)
@@ -52,18 +53,23 @@ class EncoderLock:
         self.pixels.show()
 
     def encoder_left_callback(self):
-        self.hue_values[self.current_index] = (self.hue_values[self.current_index] - 1) % 256
+        self.hue_values[self.current_index] = (self.hue_values[self.current_index] - 1) % 360
         self.update_leds()
 
     def encoder_right_callback(self):
-        self.hue_values[self.current_index] = (self.hue_values[self.current_index] + 1) % 256
+        print("right callback")
+        self.hue_values[self.current_index] = (self.hue_values[self.current_index] + 1) % 360
         self.update_leds()
 
     def green_button_callback(self):
+        print("green callback")
+        print("current index: ", self.current_index)
+        print("len(hue_values): ", len(self.hue_values))
         if self.current_index < len(self.hue_values) - 1:
             self.current_index += 1
             self.update_leds()
         else:
+            print("sss")
             self.confirm_callback()
 
     def red_button_callback(self):

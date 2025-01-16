@@ -7,10 +7,10 @@ import neopixel
 
 import config
 
-reader = MFRC522()
-
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
+# reader = MFRC522()
+# 
+# GPIO.setwarnings(False)
+# GPIO.setmode(GPIO.BCM)
 
 def default_callback(uid_num, uid_list, now_str):
     print(f"Karta wykryta: UID={uid_list} ({uid_num}), czas: {now_str}")
@@ -18,12 +18,19 @@ def default_callback(uid_num, uid_list, now_str):
 class RfidReader:
     def __init__(self):
         self.callback = default_callback
+        self.running = True
 
     def set_callback(self, callback):
         self.callback = callback
 
     def detect_card_once(self):
-        while True:
+        reader = MFRC522()
+
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+        
+        while self.running:
+            print("tesst")
             status, TagType = reader.MFRC522_Request(reader.PICC_REQIDL)
             if status == reader.MI_OK:
                 status, uid = reader.MFRC522_Anticoll()
@@ -34,7 +41,9 @@ class RfidReader:
 
                     now_str = time.strftime("%Y-%m-%d %H:%M:%S")
                     #print(f"Karta wykryta: UID={uid} ({uid_num}), czas: {now_str}")
-
+                    
+                    print("Karta wykryta")
+                    
                     self.callback(uid_num, uid, now_str)
 
                     while status == reader.MI_OK:

@@ -1,5 +1,5 @@
 from config import *
-import Rpi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import time
 
 diodes = [GPIO.PWM(led1, 50), GPIO.PWM(led2, 50), GPIO.PWM(led3, 50), GPIO.PWM(led4, 50)]

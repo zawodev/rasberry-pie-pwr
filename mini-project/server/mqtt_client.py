@@ -3,8 +3,8 @@ import paho.mqtt.client as mqtt
 
 BROKER_ADDRESS = "localhost"
 
-POST_TOPIC = "request/post"
-GET_TOPIC = "request/get"
+POST_TOPIC = "request/get"
+GET_TOPIC = "request/post"
 
 class MqttClient:
     def __init__(self):
@@ -33,6 +33,7 @@ class MqttClient:
     def on_message(self, client, userdata, msg):
         msg_str = msg.payload.decode("utf-8")
         subtopic, msg_str = msg_str.split(";")
+        print(f"received: {msg_str}")
         if subtopic in self.callbacks:
             self.callbacks[subtopic](msg_str)
         else:

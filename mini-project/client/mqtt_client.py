@@ -18,6 +18,8 @@ class MqttClient:
         self.client.loop_start()
 
     def publish(self, subtopic, msg_str):
+        print("PUBLISHED!")
+        print(f"{subtopic};{msg_str}")
         self.client.publish(POST_TOPIC, f"{subtopic};{msg_str}")
         
     def set_callback(self, subtopic, callback):
@@ -31,6 +33,7 @@ class MqttClient:
             print("Błąd połączenia. Kod=", rc)
             
     def on_message(self, client, userdata, msg):
+        print("on message")
         msg_str = msg.payload.decode("utf-8")
         subtopic, msg_str = msg_str.split(";")
         if subtopic in self.callbacks:
