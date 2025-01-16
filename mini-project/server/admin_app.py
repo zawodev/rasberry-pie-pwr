@@ -12,7 +12,7 @@ from database import (
     get_all_users,
     delete_user
 )
-
+from utils import pick_color_factory, compare
 
 ctk.set_appearance_mode("System")  # "Dark", "Light", or "System"
 ctk.set_default_color_theme("blue")  # "green", "dark-blue", or path to a custom theme .json
@@ -22,45 +22,40 @@ class App(ctk.CTk):
         super().__init__()
         self.title("GUI Admin App")
 
-        # Window size
+
         self.geometry("600x400")
         self.resizable(False, False)
 
-        # Connect to database
+
         self.conn = create_connection(db_path)
         if self.conn:
             create_tables(self.conn)
 
-        # Title label
+
         label = ctk.CTkLabel(self, text="Menu główne", 
                              font=ctk.CTkFont(size=16, weight="bold"))
         label.pack(pady=20)
 
-        # 1) Button: Show/Delete Users
         btn_show_users = ctk.CTkButton(self, text="Pokaż użytkowników",
                                        width=200,
                                        command=self.show_users_window)
         btn_show_users.pack(pady=5)
 
-        # 2) Button: Add New User
         btn_new_user = ctk.CTkButton(self, text="Dodaj nowego użytkownika",
                                      width=200,
                                      command=self.show_add_user_window)
         btn_new_user.pack(pady=5)
 
-        # 3) Button: Show Login Records (Ewidencja)
         btn_login_record = ctk.CTkButton(self, text="Pokaż ewidencję logowań",
                                          width=200,
                                          command=self.show_login_record_window)
         btn_login_record.pack(pady=5)
 
-        # 4) Button: Process Requests
         btn_requests = ctk.CTkButton(self, text="Pokaż prośby o rejestrację",
                                      width=200,
                                      command=self.show_requests_window)
         btn_requests.pack(pady=5)
 
-        # Optionally style the Treeview across the entire application
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("Treeview",
@@ -95,7 +90,7 @@ class App(ctk.CTk):
                 if user_id == rfid:
                     safe_code = safe_codes[user_ids.index(user_id)][1:len(safe_codes[user_ids.index(user_id)])-1].split(", ")
                     safe_code = [int(x) for x in safe_code]
-                    if safe_code == code:
+                    if compare(safe_code, code):
                         add_login_record(self.conn, rfid, "ACCEPTED")
                         return "VALID"
 
@@ -105,14 +100,11 @@ class App(ctk.CTk):
         else:
             return "INVALID"
                     
-            
-
 
     # -------------------------------------------------------
     # 1) Window: Add New User
     # -------------------------------------------------------
     def show_add_user_window(self):
-        # Use CTkToplevel for a consistent customtkinter style
         win = ctk.CTkToplevel(self)
         win.title("Dodaj nowego użytkownika")
         win.geometry("450x500")
@@ -122,7 +114,7 @@ class App(ctk.CTk):
                                                                  sticky="w", padx=5, pady=5)
         ctk.CTkLabel(win, text="Login:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
         ctk.CTkLabel(win, text="Hasło:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
-        ctk.CTkLabel(win, text="Kombinacja sejfu (8 liczb 0..255):").grid(row=3, column=0, 
+        ctk.CTkLabel(win, text="Kombinacja sejfu (8 liczb 0..359):").grid(row=3, column=0, 
                                                                          sticky="w", padx=5, pady=5)
 
         entry_user_id = ctk.CTkEntry(win, width=200)
@@ -148,17 +140,6 @@ class App(ctk.CTk):
             e.pack(side="left", padx=3)
             entry_safe_list.append(e)
 
-            # wywalic do funkcji ososbnej i dodac RGB -> HUE
-            def pick_color_factory(entry_widget=e):
-                def pick_color():
-                    color_code = colorchooser.askcolor(title="Wybierz kolor")
-                    if color_code and color_code[0]:
-                        r, g, b = color_code[0]
-                        gray = int((r + g + b) // 3)
-                        entry_widget.delete(0, ctk.END)
-                        entry_widget.insert(0, str(gray))
-                return pick_color
-
             btn_color = ctk.CTkButton(sub_frame, text="Kolor", width=50,
                                       command=pick_color_factory(e))
             btn_color.pack(side="left", padx=2)
@@ -183,13 +164,13 @@ class App(ctk.CTk):
                 except ValueError:
                     messagebox.showerror("Error", f"Niepoprawna liczba w polu nr {i+1}: '{val_str}'")
                     return
-                if not (0 <= val_int <= 255):
-                    messagebox.showerror("Error", f"Wartość w polu nr {i+1} musi być w zakresie 0..255.")
+                if not (0 <= val_int <= 359):
+                    messagebox.showerror("Error", f"Wartość w polu nr {i+1} musi być w zakresie 0..359.")
                     return
                 safe_comb_values.append(val_int)
 
             if len(safe_comb_values) != 8:
-                messagebox.showerror("Error", "Musisz podać dokładnie 8 liczb (0..255).")
+                messagebox.showerror("Error", "Musisz podać dokładnie 8 liczb (0..359).")
                 return
 
             # Add to database
@@ -244,10 +225,10 @@ class App(ctk.CTk):
         tree_req.heading("date_time", text="Date/Time")
         tree_req.pack(fill="both", expand=True)
 
-        # Get requests from DB
         requests = get_all_requests(self.conn)
         for row in requests:
             tree_req.insert("", ctk.END, values=row)
+
 
         # Right frame: form to add user from request
         frame_right = ctk.CTkFrame(win)
@@ -259,7 +240,7 @@ class App(ctk.CTk):
                                                       sticky="w", padx=5, pady=5)
         ctk.CTkLabel(frame_right, text="Hasło:").grid(row=2, column=0, 
                                                       sticky="w", padx=5, pady=5)
-        ctk.CTkLabel(frame_right, text="Kombinacja (8 liczb 0..255):").grid(row=3, column=0, 
+        ctk.CTkLabel(frame_right, text="Kombinacja (8 liczb 0..359):").grid(row=3, column=0, 
                                                                            sticky="w", padx=5, pady=5)
 
         entry_req_id = ctk.CTkEntry(frame_right, width=150)
@@ -284,16 +265,6 @@ class App(ctk.CTk):
             e = ctk.CTkEntry(sub_frame, width=50)
             e.pack(side="left", padx=3)
             entry_req_safe_list.append(e)
-
-            def pick_color_factory(entry_widget=e):
-                def pick_color():
-                    color_code = colorchooser.askcolor(title="Wybierz kolor")
-                    if color_code and color_code[0]:
-                        r, g, b = color_code[0]
-                        gray = int((r + g + b) // 3)
-                        entry_widget.delete(0, ctk.END)
-                        entry_widget.insert(0, str(gray))
-                return pick_color
 
             btn_color = ctk.CTkButton(sub_frame, text="Kolor", width=50,
                                       command=pick_color_factory(e))
@@ -352,20 +323,18 @@ class App(ctk.CTk):
                 except ValueError:
                     messagebox.showerror("Error", f"Niepoprawna liczba w polu nr {i+1}: '{val_str}'")
                     return
-                if not (0 <= val_int <= 255):
-                    messagebox.showerror("Error", f"Wartość w polu nr {i+1} musi być w zakresie 0..255.")
+                if not (0 <= val_int <= 359):
+                    messagebox.showerror("Error", f"Wartość w polu nr {i+1} musi być w zakresie 0..359.")
                     return
                 safe_comb_values.append(val_int)
 
             if len(safe_comb_values) != 8:
-                messagebox.showerror("Error", "Musisz podać dokładnie 8 liczb (0..255).")
+                messagebox.showerror("Error", "Musisz podać dokładnie 8 liczb (0..359).")
                 return
 
-            # Add user
             add_user(self.conn, requested_user_id, new_login, new_pass, safe_comb_values)
             messagebox.showinfo("OK", f"Dodano użytkownika o ID: {requested_user_id}")
 
-            # Delete request record
             delete_request(self.conn, req_id)
             messagebox.showinfo("OK", "Rekord request został usunięty.")
 

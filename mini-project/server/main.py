@@ -28,6 +28,7 @@ if __name__ == "__main__":
     #mqtt_client.set_callback("ENCODER_LOCK", on_encoder_request)
 
     on_rfid_request("CARD_005,78392173647832,16.01.2025T10:01:01")
-    on_encoder_request("CARD_001:255,0,100,120,200,0,0,240")
+    on_encoder_request("CARD_010:339,135,40,60,120,180,290,10")
+    on_encoder_request("CARD_010:340,135,40,60,120,180,290,10")
 
     app.mainloop()
