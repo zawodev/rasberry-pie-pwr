@@ -4,8 +4,10 @@ from database import (
     create_connection,
     create_tables,
     add_user,
+    add_login_record,
     get_all_login_records,
     get_all_requests,
+    add_request,
     delete_request,
     get_all_users,
     delete_user
@@ -67,6 +69,43 @@ class App(ctk.CTk):
                         rowheight=25,
                         fieldbackground="#2b2b2b")
         style.map("Treeview", background=[("selected", "#1f538d")])
+
+
+    def add_request_mqtt(self, type, msg_str):
+        if type == "RFID":
+            uid_num, uid_list, now_str = msg_str.split(",")
+
+            users = get_all_users(self.conn)
+            user_ids = [user[0] for user in users]
+
+            if uid_num in user_ids:
+                return "VALID"
+            else:
+                add_request(self.conn, uid_num)
+                return "INVALID"
+
+        elif type == "ENCODER":
+            rfid, code = msg_str.split(":")
+            code = [int(x) for x in code.split(",")]
+            users = get_all_users(self.conn)
+            user_ids = [user[0] for user in users]
+            safe_codes = [user[3] for user in users]
+
+            for user_id in user_ids:
+                if user_id == rfid:
+                    safe_code = safe_codes[user_ids.index(user_id)][1:len(safe_codes[user_ids.index(user_id)])-1].split(", ")
+                    safe_code = [int(x) for x in safe_code]
+                    if safe_code == code:
+                        add_login_record(self.conn, rfid, "ACCEPTED")
+                        return "VALID"
+
+                    else:
+                        add_login_record(self.conn, rfid, "DENIED")
+                        return "INVALID"
+        else:
+            return "INVALID"
+                    
+            
 
 
     # -------------------------------------------------------
