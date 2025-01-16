@@ -2,11 +2,7 @@ from config import *
 import Rpi.GPIO as GPIO
 import time
 
-diodes = []
-diodes.append(GPIO.PWM(led1, 50))
-diodes.append(GPIO.PWM(led2, 50))
-diodes.append(GPIO.PWM(led3, 50))
-diodes.append(GPIO.PWM(led4, 50))
+diodes = [GPIO.PWM(led1, 50), GPIO.PWM(led2, 50), GPIO.PWM(led3, 50), GPIO.PWM(led4, 50)]
 
 for diode in diodes:
     diode.start(0)

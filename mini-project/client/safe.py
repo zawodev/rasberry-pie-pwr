@@ -60,12 +60,15 @@ class Safe:
             time.sleep(0.1)
 
     def reset_to_start(self):
-        self.current_test = 0
         self.current_rfid = ""
-        display_progress(self.current_test)
+        self.set_progress(0)
         display_image_from_path("modules/lib/oled/locked.png")
         time.sleep(2)
         self.setup_rfid_test()
+        
+    def set_progress(self, progress):
+        self.current_test = progress
+        display_progress(progress)
 
 # =========================================================================
 # ------------------------------    TESTS    ------------------------------
@@ -74,8 +77,7 @@ class Safe:
     def setup_rfid_test(self): #test 1 - RFID
         def handle_server_response(response):
             if response == "VALID":
-                self.current_test = 1
-                display_progress(self.current_test)
+                self.set_progress(1)
                 self.setup_captcha_test()
             elif response == "INVALID":
                 buzz_once()
@@ -103,8 +105,7 @@ class Safe:
         def on_confirm():
             self.record_activity()
             if self.captcha.confirm_position():
-                self.current_test = 2
-                display_progress(self.current_test)
+                self.set_progress(2)
                 self.setup_encoder_lock_test()
             else:
                 buzz_once()
@@ -122,8 +123,7 @@ class Safe:
         def handle_server_response(response):
             if response == "VALID":
                 self.encoder_lock.running = False
-                self.current_test = 3
-                display_progress(self.current_test)
+                self.set_progress(3)
                 self.setup_button_test()
             elif response == "INVALID":
                 buzz_once()
@@ -147,17 +147,17 @@ class Safe:
     def setup_button_test(self): #test 4 - BUTTONS
         def on_green_pressed():
             self.record_activity()
-            self.current_test = 4
-            display_progress(self.current_test)
+            self.set_progress(4)
             self.on_success()
 
         assign_green_button_callback(on_green_pressed)
         display_image_from_path("lib/oled/press_green.png")
 
     def on_success(self):
-        display_image_from_path("lib/oled/success.png")
         print("Access granted!")
-        self.running = False
+        display_image_from_path("lib/oled/success.png")
+        assign_green_button_callback(self.reset_to_start)
+        #self.running = False
 
 if __name__ == "__main__":
     safe = Safe()
