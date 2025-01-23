@@ -5,7 +5,7 @@ from modules.oled_display import display_image
 # ofsdiofj
 
 class Captcha:
-    def __init__(self, image_path="/home/pi/tests/mini-project/client/modules/lib/oled/cat.png", missing_piece_size=(20, 20), canvas_size=(96, 64)):
+    def __init__(self, image_path="/home/pi/tests/mini-project/client/modules/lib/oled/catpcha.png", missing_piece_size=(20, 20), canvas_size=(96, 64)):
         self.image_path = image_path
         self.missing_piece_size = missing_piece_size
         self.canvas_size = canvas_size

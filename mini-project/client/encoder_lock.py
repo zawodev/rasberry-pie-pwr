@@ -1,16 +1,11 @@
 import time
 import math
 
-def default_callback():
-    print("aosdoasfo")
-
 class EncoderLock:
-    def __init__(self, pixels, correct_solution, tolerance=10):
+    def __init__(self, pixels):
         self.pixels = pixels
-        self.correct_solution = correct_solution
-        self.tolerance = tolerance
         self.current_index = 0  # index aktualnie edytowanej diody
-        self.hue_values = [0] * len(correct_solution)  # obecne wartości HUE dla każdej diody
+        self.hue_values = [0] * 8  # obecne wartości HUE dla każdej diody
         self.brightness = 0.5  # domyślna jasność mignięcia
         self.direction = 1  # kierunek migania (1 = rośnie, -1 = maleje)
         self.running = False
@@ -80,12 +75,6 @@ class EncoderLock:
     def assign_confirm_callback(self, callback):
         self.confirm_callback = callback
 
-    def confirm_solution(self):
-        for i, (hue, correct) in enumerate(zip(self.hue_values, self.correct_solution)):
-            if abs(hue - correct) > self.tolerance:
-                return False
-        return True
-
     def run(self):
         self.running = True
         while self.running:
@@ -99,3 +88,5 @@ class EncoderLock:
 
             self.update_leds()
             time.sleep(0.05)
+        
+        self.pixels.fill((0, 0, 0))

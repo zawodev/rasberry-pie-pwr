@@ -37,6 +37,7 @@ class MqttClient:
         msg_str = msg.payload.decode("utf-8")
         subtopic, msg_str = msg_str.split(";")
         if subtopic in self.callbacks:
+            print("calling callback")
             self.callbacks[subtopic](msg_str)
         else:
             print("Nieobsługiwany temat:", subtopic)

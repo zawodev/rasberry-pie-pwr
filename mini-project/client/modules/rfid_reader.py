@@ -30,7 +30,6 @@ class RfidReader:
         GPIO.setmode(GPIO.BCM)
         
         while self.running:
-            print("tesst")
             status, TagType = reader.MFRC522_Request(reader.PICC_REQIDL)
             if status == reader.MI_OK:
                 status, uid = reader.MFRC522_Anticoll()
@@ -46,5 +45,5 @@ class RfidReader:
                     
                     self.callback(uid_num, uid, now_str)
 
-                    while status == reader.MI_OK:
+                    while status == reader.MI_OK and self.running:
                         status, _ = reader.MFRC522_Anticoll()
