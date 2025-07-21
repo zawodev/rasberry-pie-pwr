@@ -1,16 +1,6 @@
 import time
-import RPi.GPIO as GPIO
 from mfrc522 import MFRC522
-
-import board
-import neopixel
-
-import config
-
-# reader = MFRC522()
-# 
-# GPIO.setwarnings(False)
-# GPIO.setmode(GPIO.BCM)
+from config import *
 
 def default_callback(uid_num, uid_list, now_str):
     print(f"Karta wykryta: UID={uid_list} ({uid_num}), czas: {now_str}")
@@ -25,10 +15,9 @@ class RfidReader:
 
     def detect_card_once(self):
         reader = MFRC522()
-
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BCM)
-        
+        self.running = True
         while self.running:
             status, TagType = reader.MFRC522_Request(reader.PICC_REQIDL)
             if status == reader.MI_OK:
@@ -39,7 +28,6 @@ class RfidReader:
                         uid_num += uid[i] << (i*8)
 
                     now_str = time.strftime("%Y-%m-%d %H:%M:%S")
-                    #print(f"Karta wykryta: UID={uid} ({uid_num}), czas: {now_str}")
                     
                     print("Karta wykryta")
                     
@@ -47,3 +35,7 @@ class RfidReader:
 
                     while status == reader.MI_OK and self.running:
                         status, _ = reader.MFRC522_Anticoll()
+                        
+                    print("Karta usunięta")
+                        
+        print("Koniec testu RFID")

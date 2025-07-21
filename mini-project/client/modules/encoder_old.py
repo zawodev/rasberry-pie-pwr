@@ -21,23 +21,23 @@ def encoder_callback(channel):
     # Logika określająca kierunek
     if last_state_a == GPIO.LOW and state_a == GPIO.HIGH:  # Wzrost na A
         if state_b == GPIO.LOW:
-            print("left")
+            #print("left")
             left_callback()
         else:
-            print("right")
+            #print("right")
             right_callback()
     elif last_state_a == GPIO.HIGH and state_a == GPIO.LOW:  # Opadanie na A
         if state_b == GPIO.HIGH:
-            print("left")
+            #print("left")
             left_callback()
         else:
-            print("right")
+            #print("right")
             right_callback()
 
     # Aktualizacja stanów
     last_state_a = state_a
     last_state_b = state_b
-    print("callback")  # Potwierdzenie wywołania
+    #print("callback")  # Potwierdzenie wywołania
 
 # Funkcje przypisania callbacków
 def assign_encoder_left_callback(callback):

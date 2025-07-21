@@ -11,6 +11,7 @@ def display_image(image):
     display.ShowImage(image, 0, 0)
 
 def display_image_from_path(image_path):
+    #display.clear()
     image = Image.open(image_path).resize((96, 64))
     display.ShowImage(image, 0, 0)
 

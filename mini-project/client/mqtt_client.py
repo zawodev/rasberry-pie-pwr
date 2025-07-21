@@ -1,4 +1,3 @@
-import time
 import paho.mqtt.client as mqtt
 
 BROKER_ADDRESS = "localhost"
@@ -18,8 +17,6 @@ class MqttClient:
         self.client.loop_start()
 
     def publish(self, subtopic, msg_str):
-        print("PUBLISHED!")
-        print(f"{subtopic};{msg_str}")
         self.client.publish(POST_TOPIC, f"{subtopic};{msg_str}")
         
     def set_callback(self, subtopic, callback):
@@ -27,17 +24,14 @@ class MqttClient:
         
     def on_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            print("Połączono z brokerem MQTT. Subskrypcja tematu:", GET_TOPIC)
             client.subscribe(GET_TOPIC)
         else:
             print("Błąd połączenia. Kod=", rc)
             
     def on_message(self, client, userdata, msg):
-        print("on message")
         msg_str = msg.payload.decode("utf-8")
         subtopic, msg_str = msg_str.split(";")
         if subtopic in self.callbacks:
-            print("calling callback")
             self.callbacks[subtopic](msg_str)
         else:
             print("Nieobsługiwany temat:", subtopic)

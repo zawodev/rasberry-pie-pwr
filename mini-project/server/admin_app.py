@@ -14,8 +14,8 @@ from database import (
 )
 from utils import pick_color_factory, compare
 
-ctk.set_appearance_mode("System")  # "Dark", "Light", or "System"
-ctk.set_default_color_theme("blue")  # "green", "dark-blue", or path to a custom theme .json
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
 class App(ctk.CTk):
     def __init__(self, db_path="mini-project/server/database.db"):

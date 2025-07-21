@@ -1,8 +1,9 @@
-from PIL import Image, ImageDraw, ImageOps
+import time
+
+from PIL import Image, ImageOps
 import numpy as np
 from modules.oled_display import display_image
 
-# ofsdiofj
 
 class Captcha:
     def __init__(self, image_path="/home/pi/tests/mini-project/client/modules/lib/oled/catpcha.png", missing_piece_size=(20, 20), canvas_size=(96, 64)):
@@ -13,14 +14,15 @@ class Captcha:
         self.offset = [0, 0]
         self.original_position = None
         self.base_image, self.missing_piece, self.masked_image = self._prepare_images()
+        self.running = False
 
     def _prepare_images(self):
         image = Image.open(self.image_path).convert("RGB")
         image = image.resize(self.canvas_size)
 
         # create the missing piece
-        x = np.random.randint(0, self.canvas_size[0] - self.missing_piece_size[0])
-        y = np.random.randint(0, self.canvas_size[1] - self.missing_piece_size[1])
+        x = np.random.randint(0, (self.canvas_size[0] - self.missing_piece_size[0]) / 2)
+        y = np.random.randint(0, (self.canvas_size[1] - self.missing_piece_size[1]) / 2)
         self.original_position = (x, y)
 
         image_array = np.array(image)
@@ -77,3 +79,14 @@ class Captcha:
     def update_display(self):
         combined_image = self.get_combined_image()
         display_image(combined_image)
+        
+    def run(self):
+        self.axis = 'x'
+        self.offset = [0, 0]
+        self.original_position = None
+        self.base_image, self.missing_piece, self.masked_image = self._prepare_images()
+        
+        self.running = True
+        self.update_display()
+        while self.running:
+            time.sleep(0.1)
